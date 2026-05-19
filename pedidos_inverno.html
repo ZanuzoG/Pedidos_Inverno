@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pedidos Inverno — Análise por Franquia</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f5f2ed;--paper:#fdfbf8;--ink:#1a1713;--muted:#8a8078;--border:#ddd8d0;
+    --ok:#2c4a3e;--warning:#c0392b;--tag-bg:#e8e2d8;
+    --heading:"Playfair Display",serif;--body:"Instrument Sans",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;padding:48px 32px 80px;}
+
+  .header{max-width:1240px;margin:0 auto 40px;display:flex;align-items:flex-end;justify-content:space-between;gap:32px;padding-bottom:24px;border-bottom:2px solid var(--ink);flex-wrap:wrap;}
+  .header-left .eyebrow{font-size:10px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .header-left h1{font-family:var(--heading);font-size:clamp(30px,5vw,52px);font-weight:700;line-height:1;}
+  .header-left h1 em{font-style:italic;font-weight:400;color:#2c4a3e;}
+  .header-meta{text-align:right;font-size:12px;color:var(--muted);line-height:1.8;font-weight:300;}
+  .header-meta strong{color:var(--ink);font-weight:600;font-size:14px;display:block;}
+
+  .legend{max-width:1240px;margin:0 auto 28px;display:flex;align-items:center;gap:22px;padding:11px 18px;background:var(--paper);border:1px solid var(--border);border-radius:8px;font-size:12px;flex-wrap:wrap;}
+  .legend-title{font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:10px;}
+  .leg-item{display:flex;align-items:center;gap:6px;}
+  .leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+  .nav{max-width:1240px;margin:0 auto 28px;display:flex;border-bottom:2px solid var(--border);overflow-x:auto;}
+  .nav-btn{background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;padding:10px 20px;font-family:var(--body);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;}
+  .nav-btn:hover{color:var(--ink);}
+  .nav-btn.active{color:var(--ink);border-bottom-color:var(--ink);font-weight:600;}
+
+  .page{display:none;max-width:1240px;margin:0 auto;}
+  .page.active{display:block;}
+
+  .f-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px;flex-wrap:wrap;}
+  .f-name{font-family:var(--heading);font-size:26px;font-weight:700;line-height:1.1;}
+  .f-code{font-size:12px;color:var(--muted);margin-top:4px;font-weight:300;}
+  .f-stats{display:flex;gap:12px;flex-wrap:wrap;}
+  .stat{background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:11px 16px;text-align:center;}
+  .stat .sv{font-family:var(--heading);font-size:22px;font-weight:700;}
+  .stat .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;font-weight:500;}
+
+  .alert{border-radius:8px;padding:12px 18px;margin-bottom:20px;font-size:13px;}
+  .alert-warn{background:#fff8f5;border:1px solid #f5c8be;color:#8b2500;}
+  .alert-ok{background:#f0f7f4;border:1px solid #a8d5c3;color:#1a4a35;}
+  .alert-star{background:#fefbf0;border:1px solid #e8d5a0;color:#5a4200;}
+
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+
+  .section{background:var(--paper);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .section-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+  .section-head h3{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .badge{margin-left:auto;font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+  .badge-ok{background:#d4ede6;color:var(--ok);}
+  .badge-warn{background:#fde8e6;color:var(--warning);}
+  .badge-star{background:#fef3cd;color:#856404;}
+
+  .prod-row{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;}
+  .prod-row:last-child{border-bottom:none;}
+  .prod-icon{width:30px;height:30px;border-radius:6px;background:#e8f0ec;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+  .prod-info{flex:1;min-width:0;}
+  .prod-name{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;}
+  .prod-colors{display:flex;gap:4px;flex-wrap:wrap;}
+  .color-tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+  .ct-ok{background:var(--tag-bg);color:var(--ink);}
+  .ct-miss{background:#fde8e6;color:var(--warning);border:1px dashed var(--warning);}
+  .ct-full{background:#d4ede6;color:var(--ok);font-weight:600;}
+  .prod-qty{font-family:var(--heading);font-size:16px;font-weight:700;flex-shrink:0;text-align:right;}
+  .prod-qty small{font-family:var(--body);font-size:10px;color:var(--muted);font-weight:300;display:block;}
+
+  .opp-row{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;}
+  .opp-row:last-child{border-bottom:none;}
+  .opp-icon{width:28px;height:28px;border-radius:6px;background:#fde8e6;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px;}
+  .opp-name{font-size:13px;font-weight:600;color:var(--warning);}
+  .opp-cores{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+  .opp-cor{font-size:10px;padding:2px 7px;border-radius:20px;background:#fde8e6;color:var(--warning);font-weight:500;}
+
+  /* Matriz */
+  .matrix{max-width:1240px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--paper);margin-bottom:24px;overflow-x:auto;}
+  .matrix table{width:100%;border-collapse:collapse;font-size:12px;min-width:700px;}
+  .matrix th{background:var(--ink);color:#fff;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:11px 12px;text-align:left;border-right:1px solid rgba(255,255,255,0.1);white-space:nowrap;}
+  .matrix th:last-child{border-right:none;}
+  .matrix td{padding:9px 12px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:middle;}
+  .matrix tr:last-child td{border-bottom:none;}
+  .matrix td:last-child{border-right:none;}
+  .matrix td.prod-cell{background:#f0ece4;font-weight:600;font-size:12px;white-space:nowrap;}
+  .matrix td.cat-cell{background:#e8e2d8;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+  .m-yes{color:#2c4a3e;font-size:16px;text-align:center;}
+  .m-partial{text-align:center;}
+  .m-partial span{font-size:9px;color:#8b4513;font-weight:600;display:block;line-height:1.2;}
+  .m-no{color:#ccc8c0;text-align:center;font-size:15px;}
+
+  .opp-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:0;}
+  .opp-card{background:var(--paper);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .opp-card-head{padding:10px 16px;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .opp-card-body{padding:14px 16px;}
+  .opp-card-body p{font-weight:600;color:var(--warning);margin-bottom:2px;font-size:13px;}
+  .opp-card-body span{font-size:11px;color:var(--muted);font-weight:300;}
+  .opp-card-item{margin-bottom:12px;}
+  .opp-card-item:last-child{margin-bottom:0;}
+
+  .sec-label{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:block;}
+
+  .footer{max-width:1240px;margin:40px auto 0;padding-top:18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:11px;color:var(--muted);flex-wrap:wrap;gap:8px;}
+
+  @media(max-width:800px){
+    .two-col{grid-template-columns:1fr;}
+    .header{flex-direction:column;align-items:flex-start;}
+    .header-meta{text-align:left;}
+    body{padding:28px 16px 60px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <p class="eyebrow">Análise de Pedidos</p>
+    <h1>Coleção<br><em>Inverno 2025</em></h1>
+  </div>
+  <div class="header-meta">
+    <strong>5 Franquias · 12 Produtos no Catálogo</strong>
+    Levi Store · Renata Corrêa · Felix · TFlow Cascavel · Stanlley<br>
+    Uso exclusivo da equipe de consultoria
+  </div>
+</header>
+
+<div class="legend">
+  <span class="legend-title">Legenda</span>
+  <div class="leg-item"><div class="leg-dot" style="background:#2c4a3e"></div><span>Comprado completo</span></div>
+  <div class="leg-item"><div class="leg-dot" style="background:#8b4513"></div><span>Comprado parcialmente (cores faltantes)</span></div>
+  <div class="leg-item"><div class="leg-dot" style="background:#ccc8c0"></div><span>Não comprou — oportunidade</span></div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('geral',this)">Visão Geral</button>
+  <button class="nav-btn" onclick="showPage('levi',this)">Levi Store</button>
+  <button class="nav-btn" onclick="showPage('renata',this)">Renata Corrêa</button>
+  <button class="nav-btn" onclick="showPage('felix',this)">Felix</button>
+  <button class="nav-btn" onclick="showPage('cascavel',this)">TFlow Cascavel</button>
+  <button class="nav-btn" onclick="showPage('stanlley',this)">Stanlley</button>
+</nav>
+
+<!-- ════ VISÃO GERAL ════ -->
+<div class="page active" id="page-geral">
+  <span class="sec-label">Matriz — todos os produtos × franquias</span>
+  <div class="matrix">
+    <table>
+      <thead><tr>
+        <th style="min-width:195px">Produto</th>
+        <th>Levi Store</th><th>Renata Corrêa</th><th>Felix</th><th>TFlow Cascavel</th><th>Stanlley</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="cat-cell" colspan="6">🧥 Jaquetas</td></tr>
+        <tr>
+          <td class="prod-cell">Jaqueta Dupla Face Boreal</td>
+          <td class="m-no">—</td><td class="m-no">—</td>
+          <td class="m-partial">✓<span>faltam 3 cores</span></td>
+          <td class="m-no">—</td><td class="m-no">—</td>
+        </tr>
+        <tr>
+          <td class="prod-cell">Jaqueta Cotele Aurum</td>
+          <td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td>
+        </tr>
+        <tr>
+          <td class="prod-cell">Jaqueta Vallentino</td>
+          <td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td>
+        </tr>
+        <tr>
+          <td class="prod-cell">Jaqueta Tricot Matteo</td>
+          <td class="m-no">—</td><td class="m-no">—</td>
+          <td class="m-partial">✓<span>faltam 2 cores</span></td>
+          <td class="m-no">—</td><td class="m-no">—</td>
+        </tr>
+        <tr>
+          <td class="prod-cell">Jaqueta Matelassê Daily</td>
+          <td class="m-yes">✓</td><td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td>
+          <td class="m-partial">✓<span>falta 1 cor</span></td>
+        </tr>
+        <tr>
+          <td class="prod-cell">Jaqueta Dupla Cavalier</td>
+          <td class="m-partial">✓<span>faltam 2 cores</span></td>
+          <td class="m-partial">✓<span>faltam 2 cores</span></td>
+          <td class="m-partial">✓<span>faltam 3 cores</span></td>
+          <td class="m-partial">✓<span>faltam 2 cores</span></td>
+          <td class="m-yes">✓</td>
+        </tr>
+        <tr><td class="cat-cell" colspan="6">🧶 Blusas e Suéteres</td></tr>
+        <tr>
+          <td class="prod-cell">Blusa Tricot Vetor</td>
+          <td class="m-partial">✓<span>faltam 2 cores</span></td>
+          <td class="m-no">—</td>
+          <td class="m-partial">✓<span>faltam 3 cores</span></td>
+          <td class="m-yes">✓</td><td class="m-yes">✓</td>
+        </tr>
+        <tr>
+          <td class="prod-cell">Blusa Tricot Gola Alp.</td>
+          <td class="m-partial">✓<span>faltam 2 cores</span></td>
+          <td class="m-no">—</td><td class="m-no">—</td>
+          <td class="m-partial">✓<span>faltam 2 cores</span></td>
+          <td class="m-partial">✓<span>falta 1 cor</span></td>
+        </tr>
+        <tr>
+          <td class="prod-cell">Suéter Tricot Ligne</td>
+          <td class="m-partial">✓<span>falta 1 cor</span></td>
+          <td class="m-partial">✓<span>faltam 3 cores</span></td>
+          <td class="m-partial">✓<span>faltam 4 cores</span></td>
+          <td class="m-yes">✓</td><td class="m-yes">✓</td>
+        </tr>
+        <tr><td class="cat-cell" colspan="6">👕 Polos</td></tr>
+        <tr>
+          <td class="prod-cell">Polo Tricot ML Nord</td>
+          <td class="m-partial">✓<span>faltam 3 cores</span></td>
+          <td class="m-partial">✓<span>faltam 3 cores</span></td>
+          <td class="m-partial">✓<span>faltam 2 cores</span></td>
+          <td class="m-yes">✓</td><td class="m-yes">✓</td>
+        </tr>
+        <tr>
+          <td class="prod-cell">Polo Tricot ML Bruma</td>
+          <td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td>
+          <td class="m-partial">✓<span>faltam 2 cores</span></td>
+          <td class="m-partial">✓<span>falta 1 cor</span></td>
+        </tr>
+        <tr><td class="cat-cell" colspan="6">👔 Conjuntos</td></tr>
+        <tr>
+          <td class="prod-cell">Conjunto Moletom Nobile</td>
+          <td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td><td class="m-no">—</td>
+          <td class="m-yes">✓</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <span class="sec-label" style="margin-top:28px">Maiores oportunidades</span>
+  <div class="opp-summary">
+    <div class="opp-card">
+      <div class="opp-card-head">⚠ Nenhuma franquia pediu</div>
+      <div class="opp-card-body">
+        <div class="opp-card-item"><p>Jaqueta Cotele Aurum</p><span>Preto · Marrom · Kaki</span></div>
+        <div class="opp-card-item"><p>Jaqueta Vallentino</p><span>Preto · Azul Marinho · Kaki</span></div>
+      </div>
+    </div>
+    <div class="opp-card">
+      <div class="opp-card-head">⚠ Só 1 franquia pediu</div>
+      <div class="opp-card-body">
+        <div class="opp-card-item"><p>Jaqueta Dupla Face Boreal</p><span>Apenas Felix — 4 franquias sem o produto</span></div>
+        <div class="opp-card-item"><p>Jaqueta Tricot Matteo</p><span>Apenas Felix — 4 franquias sem o produto</span></div>
+        <div class="opp-card-item"><p>Conjunto Moletom Nobile</p><span>Apenas Stanlley — 4 franquias sem o produto</span></div>
+      </div>
+    </div>
+    <div class="opp-card">
+      <div class="opp-card-head">⚠ Só 2 franquias pediram</div>
+      <div class="opp-card-body">
+        <div class="opp-card-item"><p>Polo Tricot ML Bruma</p><span>TFlow Cascavel e Stanlley — 3 franquias sem o produto</span></div>
+        <div class="opp-card-item"><p>Jaqueta Matelassê Daily</p><span>Levi Store e Stanlley — 3 franquias sem o produto</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ LEVI STORE ════ -->
+<div class="page" id="page-levi">
+  <div class="f-header">
+    <div><div class="f-name">Levi Store</div><div class="f-code">Lojas 8421 e 8506</div></div>
+    <div class="f-stats">
+      <div class="stat"><div class="sv">48</div><div class="sl">Peças</div></div>
+      <div class="stat"><div class="sv">6</div><div class="sl">Produtos</div></div>
+      <div class="stat"><div class="sv">R$ 9.765</div><div class="sl">Pedido</div></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="section">
+      <div class="section-head"><h3>✅ O que foi pedido</h3><span class="badge badge-ok">6 produtos</span></div>
+      <div class="prod-row"><div class="prod-icon">🧶</div><div class="prod-info"><div class="prod-name">Blusa Tricot Vetor</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Off White</span><span class="color-tag ct-miss">falta: Cinza</span><span class="color-tag ct-miss">falta: Kaki</span></div></div><div class="prod-qty">7<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧶</div><div class="prod-info"><div class="prod-name">Blusa Tricot Gola Alpinista</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Cinza</span><span class="color-tag ct-miss">falta: Marrom</span><span class="color-tag ct-miss">falta: Bege Claro</span></div></div><div class="prod-qty">7<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧥</div><div class="prod-info"><div class="prod-name">Jaqueta Dupla Cavalier</div><div class="prod-colors"><span class="color-tag ct-ok">Off White/Bege</span><span class="color-tag ct-ok">Preto/Coffee</span><span class="color-tag ct-miss">falta: Preto/Bege</span><span class="color-tag ct-miss">falta: Kaki/Preto</span></div></div><div class="prod-qty">7<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧥</div><div class="prod-info"><div class="prod-name">Jaqueta Matelassê Daily</div><div class="prod-colors"><span class="color-tag ct-full">✓ Completo</span><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Branco</span><span class="color-tag ct-ok">Marrom</span></div></div><div class="prod-qty">5<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧤</div><div class="prod-info"><div class="prod-name">Suéter Tricot Ligne</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Azul Marinho</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-ok">Off White</span><span class="color-tag ct-miss">falta: Bege</span></div></div><div class="prod-qty">16<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">👕</div><div class="prod-info"><div class="prod-name">Polo Tricot ML Nord</div><div class="prod-colors"><span class="color-tag ct-ok">Areia</span><span class="color-tag ct-ok">Verde Musgo</span><span class="color-tag ct-miss">falta: Preto</span><span class="color-tag ct-miss">falta: Azul Marinho</span><span class="color-tag ct-miss">falta: Marrom</span></div></div><div class="prod-qty">6<small>un.</small></div></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h3>🎯 Não pediu — oportunidades</h3><span class="badge badge-warn">6 produtos</span></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Dupla Face Boreal</div><div class="opp-cores"><span class="opp-cor">Bege/Preto</span><span class="opp-cor">Cinza/Preto</span><span class="opp-cor">Preto/Off White</span><span class="opp-cor">Coffee/Preto</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Cotele Aurum</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Marrom</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Vallentino</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Tricot Matteo</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">👕</div><div class="opp-info"><div class="opp-name">Polo Tricot ML Bruma</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Bege</span><span class="opp-cor">Marrom</span><span class="opp-cor">Grafite</span><span class="opp-cor">Verde Musgo</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">👔</div><div class="opp-info"><div class="opp-name">Conjunto Moletom Nobile</div><div class="opp-cores"><span class="opp-cor">Preto</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ RENATA CORRÊA ════ -->
+<div class="page" id="page-renata">
+  <div class="f-header">
+    <div><div class="f-name">Renata Corrêa</div><div class="f-code">Loja 8400</div></div>
+    <div class="f-stats">
+      <div class="stat"><div class="sv">26</div><div class="sl">Peças</div></div>
+      <div class="stat"><div class="sv">3</div><div class="sl">Produtos</div></div>
+      <div class="stat"><div class="sv">R$ 5.937</div><div class="sl">Pedido</div></div>
+    </div>
+  </div>
+  <div class="alert alert-warn">⚠️ <strong>Atenção:</strong> Menor pedido entre as 5 franquias — apenas 3 tipos de produto e 26 peças. Alto potencial de expansão com 9 produtos ainda não pedidos.</div>
+  <div class="two-col">
+    <div class="section">
+      <div class="section-head"><h3>✅ O que foi pedido</h3><span class="badge badge-ok">3 produtos</span></div>
+      <div class="prod-row"><div class="prod-icon">🧥</div><div class="prod-info"><div class="prod-name">Jaqueta Dupla Cavalier</div><div class="prod-colors"><span class="color-tag ct-ok">Preto/Coffee</span><span class="color-tag ct-ok">Kaki/Preto</span><span class="color-tag ct-miss">falta: Preto/Bege</span><span class="color-tag ct-miss">falta: Off White/Bege</span></div></div><div class="prod-qty">10<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧤</div><div class="prod-info"><div class="prod-name">Suéter Tricot Ligne</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Off White</span><span class="color-tag ct-miss">falta: Azul Marinho</span><span class="color-tag ct-miss">falta: Bege</span><span class="color-tag ct-miss">falta: Marrom</span></div></div><div class="prod-qty">8<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">👕</div><div class="prod-info"><div class="prod-name">Polo Tricot ML Nord</div><div class="prod-colors"><span class="color-tag ct-ok">Azul Marinho</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-miss">falta: Preto</span><span class="color-tag ct-miss">falta: Areia</span><span class="color-tag ct-miss">falta: Verde Musgo</span></div></div><div class="prod-qty">8<small>un.</small></div></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h3>🎯 Não pediu — oportunidades</h3><span class="badge badge-warn">9 produtos</span></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Dupla Face Boreal</div><div class="opp-cores"><span class="opp-cor">Bege/Preto</span><span class="opp-cor">Cinza/Preto</span><span class="opp-cor">Preto/Off White</span><span class="opp-cor">Coffee/Preto</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Cotele Aurum</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Marrom</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Vallentino</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Tricot Matteo</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Matelassê Daily</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Marrom</span><span class="opp-cor">Branco</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧶</div><div class="opp-info"><div class="opp-name">Blusa Tricot Vetor</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Cinza</span><span class="opp-cor">Off White</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧶</div><div class="opp-info"><div class="opp-name">Blusa Tricot Gola Alpinista</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Cinza</span><span class="opp-cor">Marrom</span><span class="opp-cor">Bege Claro</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">👕</div><div class="opp-info"><div class="opp-name">Polo Tricot ML Bruma</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Bege</span><span class="opp-cor">Marrom</span><span class="opp-cor">Grafite</span><span class="opp-cor">Verde Musgo</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">👔</div><div class="opp-info"><div class="opp-name">Conjunto Moletom Nobile</div><div class="opp-cores"><span class="opp-cor">Preto</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ FELIX ════ -->
+<div class="page" id="page-felix">
+  <div class="f-header">
+    <div><div class="f-name">Felix</div><div class="f-code">Lojas 8521 e 8579</div></div>
+    <div class="f-stats">
+      <div class="stat"><div class="sv">47</div><div class="sl">Peças</div></div>
+      <div class="stat"><div class="sv">6</div><div class="sl">Produtos</div></div>
+      <div class="stat"><div class="sv">R$ 10.935</div><div class="sl">Pedido</div></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="section">
+      <div class="section-head"><h3>✅ O que foi pedido</h3><span class="badge badge-ok">6 produtos</span></div>
+      <div class="prod-row"><div class="prod-icon">🧶</div><div class="prod-info"><div class="prod-name">Blusa Tricot Vetor</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-miss">falta: Cinza</span><span class="color-tag ct-miss">falta: Off White</span><span class="color-tag ct-miss">falta: Kaki</span></div></div><div class="prod-qty">3<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧥</div><div class="prod-info"><div class="prod-name">Jaqueta Dupla Cavalier</div><div class="prod-colors"><span class="color-tag ct-ok">Preto/Bege</span><span class="color-tag ct-miss">falta: Off White/Bege</span><span class="color-tag ct-miss">falta: Preto/Coffee</span><span class="color-tag ct-miss">falta: Kaki/Preto</span></div></div><div class="prod-qty">6<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧥</div><div class="prod-info"><div class="prod-name">Jaqueta Dupla Face Boreal</div><div class="prod-colors"><span class="color-tag ct-ok">Bege/Preto</span><span class="color-tag ct-miss">falta: Cinza/Preto</span><span class="color-tag ct-miss">falta: Preto/Off White</span><span class="color-tag ct-miss">falta: Coffee/Preto</span></div></div><div class="prod-qty">6<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧥</div><div class="prod-info"><div class="prod-name">Jaqueta Tricot Matteo</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-miss">falta: Azul Marinho</span><span class="color-tag ct-miss">falta: Kaki</span></div></div><div class="prod-qty">4<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧤</div><div class="prod-info"><div class="prod-name">Suéter Tricot Ligne</div><div class="prod-colors"><span class="color-tag ct-ok">Bege</span><span class="color-tag ct-miss">falta: Preto</span><span class="color-tag ct-miss">falta: Azul Marinho</span><span class="color-tag ct-miss">falta: Marrom</span><span class="color-tag ct-miss">falta: Off White</span></div></div><div class="prod-qty">9<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">👕</div><div class="prod-info"><div class="prod-name">Polo Tricot ML Nord</div><div class="prod-colors"><span class="color-tag ct-ok">Azul Marinho</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-ok">Areia</span><span class="color-tag ct-miss">falta: Preto</span><span class="color-tag ct-miss">falta: Verde Musgo</span></div></div><div class="prod-qty">19<small>un.</small></div></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h3>🎯 Não pediu — oportunidades</h3><span class="badge badge-warn">6 produtos</span></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Cotele Aurum</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Marrom</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Vallentino</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Matelassê Daily</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Marrom</span><span class="opp-cor">Branco</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧶</div><div class="opp-info"><div class="opp-name">Blusa Tricot Gola Alpinista</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Cinza</span><span class="opp-cor">Marrom</span><span class="opp-cor">Bege Claro</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">👕</div><div class="opp-info"><div class="opp-name">Polo Tricot ML Bruma</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Bege</span><span class="opp-cor">Marrom</span><span class="opp-cor">Grafite</span><span class="opp-cor">Verde Musgo</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">👔</div><div class="opp-info"><div class="opp-name">Conjunto Moletom Nobile</div><div class="opp-cores"><span class="opp-cor">Preto</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ TFLOW CASCAVEL ════ -->
+<div class="page" id="page-cascavel">
+  <div class="f-header">
+    <div><div class="f-name">TFlow Cascavel</div><div class="f-code">Loja 8462</div></div>
+    <div class="f-stats">
+      <div class="stat"><div class="sv">106</div><div class="sl">Peças</div></div>
+      <div class="stat"><div class="sv">6</div><div class="sl">Produtos</div></div>
+      <div class="stat" style="background:#d4ede6;border-color:#a8d5c3"><div class="sv" style="color:#2c4a3e">2º maior</div><div class="sl">Pedido</div></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="section">
+      <div class="section-head"><h3>✅ O que foi pedido</h3><span class="badge badge-ok">6 produtos</span></div>
+      <div class="prod-row"><div class="prod-icon">🧶</div><div class="prod-info"><div class="prod-name">Blusa Tricot Vetor</div><div class="prod-colors"><span class="color-tag ct-full">✓ Completo</span><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Cinza</span><span class="color-tag ct-ok">Off White</span><span class="color-tag ct-ok">Kaki</span></div></div><div class="prod-qty">31<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧶</div><div class="prod-info"><div class="prod-name">Blusa Tricot Gola Alpinista</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-miss">falta: Cinza</span><span class="color-tag ct-miss">falta: Bege Claro</span></div></div><div class="prod-qty">13<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧥</div><div class="prod-info"><div class="prod-name">Jaqueta Dupla Cavalier</div><div class="prod-colors"><span class="color-tag ct-ok">Preto/Coffee</span><span class="color-tag ct-ok">Kaki/Preto</span><span class="color-tag ct-miss">falta: Preto/Bege</span><span class="color-tag ct-miss">falta: Off White/Bege</span></div></div><div class="prod-qty">8<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧤</div><div class="prod-info"><div class="prod-name">Suéter Tricot Ligne</div><div class="prod-colors"><span class="color-tag ct-full">✓ Completo</span><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Azul Marinho</span><span class="color-tag ct-ok">Bege</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-ok">Off White</span></div></div><div class="prod-qty">12<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">👕</div><div class="prod-info"><div class="prod-name">Polo Tricot ML Nord</div><div class="prod-colors"><span class="color-tag ct-full">✓ Completo</span><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Azul Marinho</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-ok">Areia</span><span class="color-tag ct-ok">Verde Musgo</span></div></div><div class="prod-qty">34<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">👕</div><div class="prod-info"><div class="prod-name">Polo Tricot ML Bruma</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Bege</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-ok">Grafite</span><span class="color-tag ct-miss">falta: Azul Marinho</span><span class="color-tag ct-miss">falta: Verde Musgo</span></div></div><div class="prod-qty">8<small>un.</small></div></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h3>🎯 Não pediu — oportunidades</h3><span class="badge badge-warn">6 produtos</span></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Dupla Face Boreal</div><div class="opp-cores"><span class="opp-cor">Bege/Preto</span><span class="opp-cor">Cinza/Preto</span><span class="opp-cor">Preto/Off White</span><span class="opp-cor">Coffee/Preto</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Cotele Aurum</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Marrom</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Vallentino</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Tricot Matteo</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Matelassê Daily</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Marrom</span><span class="opp-cor">Branco</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">👔</div><div class="opp-info"><div class="opp-name">Conjunto Moletom Nobile</div><div class="opp-cores"><span class="opp-cor">Preto</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ STANLLEY ════ -->
+<div class="page" id="page-stanlley">
+  <div class="f-header">
+    <div><div class="f-name">Stanlley</div><div class="f-code">Loja 8396</div></div>
+    <div class="f-stats">
+      <div class="stat"><div class="sv">103</div><div class="sl">Peças</div></div>
+      <div class="stat"><div class="sv">8</div><div class="sl">Produtos</div></div>
+      <div class="stat" style="background:#fef3cd;border-color:#e8d5a0"><div class="sv" style="color:#856404">Mais</div><div class="sl">Produtos</div></div>
+    </div>
+  </div>
+  <div class="alert alert-star">⭐ <strong>Destaque:</strong> Stanlley é a franquia com maior variedade de produtos — 8 tipos diferentes, incluindo Conjunto Moletom Nobile (única a pedir) e mix completo em 4 produtos.</div>
+  <div class="two-col">
+    <div class="section">
+      <div class="section-head"><h3>✅ O que foi pedido</h3><span class="badge badge-star">8 produtos</span></div>
+      <div class="prod-row"><div class="prod-icon">🧶</div><div class="prod-info"><div class="prod-name">Blusa Tricot Vetor</div><div class="prod-colors"><span class="color-tag ct-full">✓ Completo</span><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Cinza</span><span class="color-tag ct-ok">Off White</span><span class="color-tag ct-ok">Kaki</span></div></div><div class="prod-qty">16<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧶</div><div class="prod-info"><div class="prod-name">Blusa Tricot Gola Alpinista</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Cinza</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-miss">falta: Bege Claro</span></div></div><div class="prod-qty">11<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧥</div><div class="prod-info"><div class="prod-name">Jaqueta Dupla Cavalier</div><div class="prod-colors"><span class="color-tag ct-full">✓ Completo</span><span class="color-tag ct-ok">Preto/Bege</span><span class="color-tag ct-ok">Off White/Bege</span><span class="color-tag ct-ok">Preto/Coffee</span><span class="color-tag ct-ok">Kaki/Preto</span></div></div><div class="prod-qty">16<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧥</div><div class="prod-info"><div class="prod-name">Jaqueta Matelassê Daily</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-miss">falta: Branco</span></div></div><div class="prod-qty">9<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">🧤</div><div class="prod-info"><div class="prod-name">Suéter Tricot Ligne</div><div class="prod-colors"><span class="color-tag ct-full">✓ Completo</span><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Azul Marinho</span><span class="color-tag ct-ok">Bege</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-ok">Off White</span></div></div><div class="prod-qty">20<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">👕</div><div class="prod-info"><div class="prod-name">Polo Tricot ML Nord</div><div class="prod-colors"><span class="color-tag ct-full">✓ Completo</span><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Azul Marinho</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-ok">Areia</span><span class="color-tag ct-ok">Verde Musgo</span></div></div><div class="prod-qty">20<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">👕</div><div class="prod-info"><div class="prod-name">Polo Tricot ML Bruma</div><div class="prod-colors"><span class="color-tag ct-ok">Preto</span><span class="color-tag ct-ok">Azul Marinho</span><span class="color-tag ct-ok">Bege</span><span class="color-tag ct-ok">Marrom</span><span class="color-tag ct-ok">Grafite</span><span class="color-tag ct-miss">falta: Verde Musgo</span></div></div><div class="prod-qty">20<small>un.</small></div></div>
+      <div class="prod-row"><div class="prod-icon">👔</div><div class="prod-info"><div class="prod-name">Conjunto Moletom Nobile</div><div class="prod-colors"><span class="color-tag ct-full">✓ Completo</span><span class="color-tag ct-ok">Preto</span></div></div><div class="prod-qty">4<small>un.</small></div></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h3>🎯 Não pediu — oportunidades</h3><span class="badge badge-warn">4 produtos</span></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Dupla Face Boreal</div><div class="opp-cores"><span class="opp-cor">Bege/Preto</span><span class="opp-cor">Cinza/Preto</span><span class="opp-cor">Preto/Off White</span><span class="opp-cor">Coffee/Preto</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Cotele Aurum</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Marrom</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Vallentino</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Kaki</span></div></div></div>
+      <div class="opp-row"><div class="opp-icon">🧥</div><div class="opp-info"><div class="opp-name">Jaqueta Tricot Matteo</div><div class="opp-cores"><span class="opp-cor">Preto</span><span class="opp-cor">Azul Marinho</span><span class="opp-cor">Kaki</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <span>Fonte: PEDIDOS_INVERNO.xlsx · Catálogo Inverno 2025 — 12 produtos · 5 franquias</span>
+  <span>Uso interno — equipe de consultoria</span>
+</footer>
+
+<script>
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
